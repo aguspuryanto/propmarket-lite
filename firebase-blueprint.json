@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "An agent using the platform",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["agent", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "propertiesSold": { "type": "number", "description": "Total properties sold by agent" },
+        "commissionTier": { "type": "number", "description": "Current commission percentage tier" }
+      },
+      "required": ["uid", "email", "name", "role", "createdAt"]
+    },
+    "Property": {
+      "title": "Property",
+      "description": "A property listing available for marketing",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "commissionRate": { "type": "number", "description": "Commission rate in percentage, max 3" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "virtualTourUrl": { "type": "string", "description": "URL for 360 virtual tour" },
+        "floorPlanUrl": { "type": "string", "description": "URL for downloadable floor plan" },
+        "bedrooms": { "type": "number", "description": "Number of bedrooms" },
+        "bathrooms": { "type": "number", "description": "Number of bathrooms" },
+        "location": { "type": "string", "description": "Location or city of the property" },
+        "status": { "type": "string", "enum": ["available", "sold"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "description", "price", "commissionRate", "status", "createdAt"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A potential buyer lead submitted by an agent",
+      "type": "object",
+      "properties": {
+        "agentId": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "buyerPhone": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "contacted", "interested", "closed", "lost"] },
+        "dealPrice": { "type": "number" },
+        "commissionEarned": { "type": "number" },
+        "interactions": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "date": { "type": "string", "format": "date-time" },
+              "type": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          } 
+        },
+        "nextFollowUp": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["agentId", "propertyId", "buyerName", "buyerPhone", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles"
+    },
+    "/properties/{propertyId}": {
+      "schema": { "$ref": "#/entities/Property" },
+      "description": "Stores property listings"
+    },
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Stores buyer leads"
+    }
+  }
+}

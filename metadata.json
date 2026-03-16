@@ -1,0 +1,7 @@
+{
+  "name": "PropMart - Property Marketing",
+  "description": "Platform pemasaran properti dengan pelacakan lead dan manajemen komisi hingga 3%.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

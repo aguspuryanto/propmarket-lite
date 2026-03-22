@@ -46,6 +46,23 @@ export default function PropertyDetail() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
   };
 
+  const getMapQuery = () => {
+    if (!property) return '';
+    const parts = [];
+    if (property.address) parts.push(property.address);
+    if (property.area) parts.push(property.area);
+    if (property.city) parts.push(property.city);
+    if (property.province) parts.push(property.province);
+    if (property.location) parts.push(property.location);
+    
+    // If no specific location data is found, fallback to a general search or the title
+    if (parts.length === 0) {
+      return encodeURIComponent(property.title || 'Indonesia');
+    }
+    
+    return encodeURIComponent(parts.join(', '));
+  };
+
   const handleShare = (platform: string) => {
     if (!property) return;
     
@@ -185,6 +202,33 @@ export default function PropertyDetail() {
           
           <div className="prose prose-slate prose-lg max-w-none text-slate-600 mb-10 leading-relaxed">
             <p className="whitespace-pre-line">{property.description}</p>
+          </div>
+
+          {/* Map Section */}
+          <div className="border-t border-slate-100 pt-8 mb-10">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-serif text-2xl font-bold text-slate-900">Lokasi Properti</h3>
+              <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${getMapQuery()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 border border-slate-200 shadow-sm text-sm font-medium rounded-full text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+              >
+                <MapPin size={16} className="mr-2" />
+                Buka di Google Maps
+              </a>
+            </div>
+            <div className="w-full h-[400px] bg-slate-100 rounded-2xl overflow-hidden shadow-inner border border-slate-200">
+              <iframe
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                src={`https://maps.google.com/maps?q=${getMapQuery()}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+              ></iframe>
+            </div>
           </div>
 
           {/* Virtual Tour & Floor Plan */}

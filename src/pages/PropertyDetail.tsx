@@ -63,6 +63,25 @@ export default function PropertyDetail() {
     return encodeURIComponent(parts.join(', '));
   };
 
+  const getEmbedUrl = (url: string) => {
+    if (!url) return '';
+    
+    // Handle YouTube
+    const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+    if (ytMatch && ytMatch[1]) {
+      return `https://www.youtube.com/embed/${ytMatch[1]}`;
+    }
+    
+    // Handle Vimeo
+    const vimeoMatch = url.match(/(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|)(\d+)(?:[a-zA-Z0-9_\-]+)?/i);
+    if (vimeoMatch && vimeoMatch[1]) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    }
+    
+    // Return original if no match (might be a matterport or other 360 tour link)
+    return url;
+  };
+
   const handleShare = (platform: string) => {
     if (!property) return;
     
@@ -101,12 +120,12 @@ export default function PropertyDetail() {
 
   const handleSubmitLead = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !property) return;
+    if (!property) return;
     
     setSubmittingLead(true);
     try {
       await addDoc(collection(db, 'leads'), {
-        agentId: user.uid,
+        agentId: property.agentId || 'dummy-agent-123',
         propertyId: property.id,
         buyerName,
         buyerPhone,
@@ -133,7 +152,7 @@ export default function PropertyDetail() {
   if (!property) return <div className="text-center py-12">Properti tidak ditemukan.</div>;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto px-4 py-8">
       <Helmet>
         <title>{property.title} - PropMart</title>
         <meta name="description" content={property.description} />
@@ -239,14 +258,14 @@ export default function PropertyDetail() {
               {property.virtualTourUrl && (
                 <div className="mb-8">
                   <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center uppercase tracking-wider">
-                    <Video size={18} className="mr-2 text-indigo-500" /> Tur Virtual 360°
+                    <Video size={18} className="mr-2 text-indigo-500" /> Tur Virtual / Video
                   </h4>
                   <div className="aspect-w-16 aspect-h-9 bg-slate-100 rounded-2xl overflow-hidden shadow-inner border border-slate-200">
                     <iframe 
-                      src={property.virtualTourUrl} 
+                      src={getEmbedUrl(property.virtualTourUrl)} 
                       className="w-full h-96 border-0" 
                       allowFullScreen 
-                      title="Virtual Tour 360"
+                      title="Virtual Tour / Video"
                     ></iframe>
                   </div>
                 </div>

@@ -161,7 +161,7 @@ export default function Dashboard() {
       <div className="bg-white shadow-sm border border-slate-200 rounded-2xl overflow-hidden mt-8">
         <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <h3 className="text-lg font-semibold text-slate-900 font-serif">Leads Terbaru</h3>
-          <Link to="/leads" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Lihat semua &rarr;</Link>
+          <Link to="/dashboard/leads" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Lihat semua &rarr;</Link>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">

@@ -112,7 +112,7 @@ export default function Leads() {
           <ul className="divide-y divide-slate-100">
             {filteredLeads.map((lead) => (
               <li key={lead.id} className="group">
-                <Link to={`/leads/${lead.id}`} className="block hover:bg-slate-50 transition-colors duration-200">
+                <Link to={`/dashboard/leads/${lead.id}`} className="block hover:bg-slate-50 transition-colors duration-200">
                   <div className="px-6 py-5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">

@@ -10,10 +10,10 @@ export default function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Properti', href: '/properties', icon: Building },
-    { name: 'Leads', href: '/leads', icon: Users },
-    { name: 'Laporan', href: '/reports', icon: BarChart2 },
+    { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: 'Properti', href: '/dashboard/properties', icon: Building },
+    { name: 'Leads', href: '/dashboard/leads', icon: Users },
+    { name: 'Laporan', href: '/dashboard/reports', icon: BarChart2 },
   ];
 
   const handleLogout = async () => {

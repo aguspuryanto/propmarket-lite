@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 import Layout from './components/Layout';
+import PublicLayout from './components/PublicLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
@@ -14,6 +15,7 @@ import AddProperty from './pages/AddProperty';
 import Leads from './pages/Leads';
 import LeadDetail from './pages/LeadDetail';
 import Reports from './pages/Reports';
+import Landing from './pages/Landing';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -41,7 +43,12 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             
-            <Route path="/" element={
+            <Route path="/" element={<PublicLayout />}>
+              <Route index element={<Landing />} />
+              <Route path="properties/:id" element={<PropertyDetail />} />
+            </Route>
+
+            <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Layout />
               </ProtectedRoute>

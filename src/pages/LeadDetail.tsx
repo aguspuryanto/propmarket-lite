@@ -200,7 +200,7 @@ export default function LeadDetail() {
         <title>Detail Lead - PropMart</title>
       </Helmet>
 
-      <button onClick={() => navigate('/leads')} className="flex items-center text-slate-500 hover:text-slate-900 transition-colors mb-4">
+      <button onClick={() => navigate('/dashboard/leads')} className="flex items-center text-slate-500 hover:text-slate-900 transition-colors mb-4">
         <ArrowLeft size={20} className="mr-2" /> <span className="font-medium">Kembali ke Daftar Leads</span>
       </button>
 

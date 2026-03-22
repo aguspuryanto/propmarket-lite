@@ -92,7 +92,7 @@ export default function AddProperty() {
       };
 
       await addDoc(collection(db, 'properties'), propertyData);
-      navigate('/properties');
+      navigate('/dashboard/properties');
     } catch (err: any) {
       console.error("Error adding property:", err);
       setError(err.message || 'Terjadi kesalahan saat menyimpan properti.');

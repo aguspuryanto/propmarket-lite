@@ -90,7 +90,7 @@ export default function Landing() {
       </Helmet>
 
       {/* Hero Section */}
-      <div className="bg-slate-900 text-white py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="bg-slate-900 text-white pt-20 pb-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
           <img 
             src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
@@ -108,7 +108,83 @@ export default function Landing() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      {/* Hero Search Box */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-20 mb-8">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl border border-slate-100">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Lokasi</label>
+              <div className="relative rounded-xl shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MapPin size={16} className="text-slate-400" />
+                </div>
+                <input
+                  type="text"
+                  value={locationSearch}
+                  onChange={(e) => setLocationSearch(e.target.value)}
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-3 transition-colors text-slate-900"
+                  placeholder="Cari kota/daerah..."
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Harga Min</label>
+              <div className="relative rounded-xl shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-slate-400 sm:text-sm font-medium">Rp</span>
+                </div>
+                <input
+                  type="number"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-3 transition-colors text-slate-900"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Harga Max</label>
+              <div className="relative rounded-xl shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-slate-400 sm:text-sm font-medium">Rp</span>
+                </div>
+                <input
+                  type="number"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-3 transition-colors text-slate-900"
+                  placeholder="Tak terhingga"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Kamar Tidur</label>
+              <div className="relative rounded-xl shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Bed size={16} className="text-slate-400" />
+                </div>
+                <select
+                  value={minBedrooms}
+                  onChange={(e) => setMinBedrooms(e.target.value)}
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-3 transition-colors text-slate-900"
+                >
+                  <option value="">Semua</option>
+                  <option value="1">1+ Kamar</option>
+                  <option value="2">2+ Kamar</option>
+                  <option value="3">3+ Kamar</option>
+                  <option value="4">4+ Kamar</option>
+                  <option value="5">5+ Kamar</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
         
         {/* Mobile Filter Toggle */}
         <div className="lg:hidden mb-6">
@@ -139,23 +215,6 @@ export default function Landing() {
               </div>
 
               <div className="space-y-6">
-                {/* Lokasi */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Lokasi</label>
-                  <div className="relative rounded-xl shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <MapPin size={16} className="text-slate-400" />
-                    </div>
-                    <input
-                      type="text"
-                      value={locationSearch}
-                      onChange={(e) => setLocationSearch(e.target.value)}
-                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-2.5 transition-colors"
-                      placeholder="Cari kota/daerah..."
-                    />
-                  </div>
-                </div>
-
                 {/* Tipe Properti */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Tipe Properti</label>
@@ -173,59 +232,6 @@ export default function Landing() {
                     <option value="kantor">Kantor</option>
                     <option value="pabrik">Pabrik</option>
                   </select>
-                </div>
-
-                {/* Harga */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Rentang Harga</label>
-                  <div className="space-y-3">
-                    <div className="relative rounded-xl shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-slate-400 sm:text-sm font-medium">Rp</span>
-                      </div>
-                      <input
-                        type="number"
-                        value={minPrice}
-                        onChange={(e) => setMinPrice(e.target.value)}
-                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-2.5 transition-colors"
-                        placeholder="Min"
-                      />
-                    </div>
-                    <div className="relative rounded-xl shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-slate-400 sm:text-sm font-medium">Rp</span>
-                      </div>
-                      <input
-                        type="number"
-                        value={maxPrice}
-                        onChange={(e) => setMaxPrice(e.target.value)}
-                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-2.5 transition-colors"
-                        placeholder="Max"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Kamar Tidur */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Kamar Tidur (Min)</label>
-                  <div className="relative rounded-xl shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Bed size={16} className="text-slate-400" />
-                    </div>
-                    <select
-                      value={minBedrooms}
-                      onChange={(e) => setMinBedrooms(e.target.value)}
-                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-2.5 transition-colors"
-                    >
-                      <option value="">Semua</option>
-                      <option value="1">1+ Kamar</option>
-                      <option value="2">2+ Kamar</option>
-                      <option value="3">3+ Kamar</option>
-                      <option value="4">4+ Kamar</option>
-                      <option value="5">5+ Kamar</option>
-                    </select>
-                  </div>
                 </div>
 
                 {/* Sertifikat */}

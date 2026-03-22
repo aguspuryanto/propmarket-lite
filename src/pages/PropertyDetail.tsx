@@ -4,13 +4,14 @@ import { Helmet } from 'react-helmet-async';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { Share2, Facebook, MessageCircle, ArrowLeft, DollarSign, Download, Video, MapPin, Bed, Bath } from 'lucide-react';
+import { Share2, Facebook, MessageCircle, ArrowLeft, DollarSign, Download, Video, MapPin, Bed, Bath, User } from 'lucide-react';
 
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [property, setProperty] = useState<any>(null);
+  const [agent, setAgent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showLeadForm, setShowLeadForm] = useState(false);
   
@@ -28,7 +29,16 @@ export default function PropertyDetail() {
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
-          setProperty({ id: docSnap.id, ...docSnap.data() });
+          const propData = { id: docSnap.id, ...docSnap.data() };
+          setProperty(propData);
+
+          if (propData.agentId) {
+            const agentRef = doc(db, 'users', propData.agentId);
+            const agentSnap = await getDoc(agentRef);
+            if (agentSnap.exists()) {
+              setAgent({ id: agentSnap.id, ...agentSnap.data() });
+            }
+          }
         } else {
           console.log("No such document!");
         }
@@ -152,7 +162,7 @@ export default function PropertyDetail() {
   if (!property) return <div className="text-center py-12">Properti tidak ditemukan.</div>;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <Helmet>
         <title>{property.title} - PropMart</title>
         <meta name="description" content={property.description} />
@@ -162,12 +172,15 @@ export default function PropertyDetail() {
         {property.images && property.images[0] && <meta property="og:image" content={property.images[0]} />}
       </Helmet>
 
-      <button onClick={() => navigate(-1)} className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 w-fit">
+      <button onClick={() => navigate(-1)} className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 w-fit mb-6">
         <ArrowLeft size={18} className="mr-2" /> Kembali ke Daftar
       </button>
 
-      <div className="bg-white shadow-xl shadow-slate-200/50 rounded-3xl overflow-hidden border border-slate-100">
-        {/* Image Gallery */}
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Main Content */}
+        <div className="lg:w-2/3 space-y-6">
+          <div className="bg-white shadow-xl shadow-slate-200/50 rounded-3xl overflow-hidden border border-slate-100">
+            {/* Image Gallery */}
         <div className="h-72 sm:h-[500px] bg-slate-200 w-full relative">
           {property.images && property.images.length > 0 ? (
             <img src={property.images[0]} alt={property.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -368,6 +381,49 @@ export default function PropertyDetail() {
                     </div>
                   </form>
                 )}
+              </div>
+            )}
+          </div>
+        </div>
+        </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="lg:w-1/3">
+          <div className="bg-white shadow-xl shadow-slate-200/50 rounded-3xl p-6 border border-slate-100 sticky top-24">
+            <h3 className="font-serif text-xl font-bold text-slate-900 mb-6">Hubungi Agen</h3>
+            
+            {agent ? (
+              <div className="space-y-6">
+                <div className="flex items-center">
+                  {agent.photoUrl ? (
+                    <img src={agent.photoUrl} alt={agent.name} className="w-16 h-16 rounded-full object-cover mr-4 border-2 border-slate-100" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-4 border-2 border-indigo-50">
+                      <User size={28} />
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-lg">{agent.name}</h4>
+                    <p className="text-slate-500 text-sm">Agen Properti</p>
+                  </div>
+                </div>
+                
+                <a 
+                  href={`https://wa.me/${agent.phone}?text=Halo%20${encodeURIComponent(agent.name)},%20saya%20tertarik%20dengan%20properti%20${encodeURIComponent(property.title)}%20yang%20Anda%20listing%20di%20PropMart.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex justify-center items-center px-4 py-3 bg-[#25D366] text-white font-bold rounded-xl hover:bg-[#1ebe57] transition-all hover:-translate-y-0.5 shadow-sm"
+                >
+                  <MessageCircle size={20} className="mr-2" /> Hubungi via WhatsApp
+                </a>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-slate-500">
+                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                  <User size={28} className="text-slate-400" />
+                </div>
+                <p>Memuat data agen...</p>
               </div>
             )}
           </div>

@@ -10,6 +10,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import Properties from './pages/Properties';
 import PropertyDetail from './pages/PropertyDetail';
+import AddProperty from './pages/AddProperty';
 import Leads from './pages/Leads';
 import LeadDetail from './pages/LeadDetail';
 import Reports from './pages/Reports';
@@ -47,6 +48,7 @@ export default function App() {
             }>
               <Route index element={<Dashboard />} />
               <Route path="properties" element={<Properties />} />
+              <Route path="properties/add" element={<AddProperty />} />
               <Route path="properties/:id" element={<PropertyDetail />} />
               <Route path="leads" element={<Leads />} />
               <Route path="leads/:id" element={<LeadDetail />} />

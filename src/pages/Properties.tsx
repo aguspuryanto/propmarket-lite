@@ -163,6 +163,13 @@ export default function Properties() {
               Generate Dummies
             </button>
           )}
+          <Link
+            to="/properties/add"
+            className="flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-full text-slate-900 bg-yellow-400 hover:bg-yellow-500 transition-colors"
+          >
+            <PlusCircle size={16} className="mr-2" />
+            Tambah Listing
+          </Link>
           <button 
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center px-4 py-2 border border-slate-200 shadow-sm text-sm font-medium rounded-full text-slate-700 bg-white hover:bg-slate-50 transition-colors"

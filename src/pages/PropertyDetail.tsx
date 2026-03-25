@@ -29,7 +29,7 @@ export default function PropertyDetail() {
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
-          const propData = { id: docSnap.id, ...docSnap.data() };
+          const propData = { id: docSnap.id, ...docSnap.data() } as any;
           setProperty(propData);
 
           if (propData.agentId) {
@@ -135,7 +135,7 @@ export default function PropertyDetail() {
     setSubmittingLead(true);
     try {
       await addDoc(collection(db, 'leads'), {
-        agentId: property.agentId || 'dummy-agent-123',
+        agentId: property.agentId,
         propertyId: property.id,
         buyerName,
         buyerPhone,

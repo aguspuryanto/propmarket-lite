@@ -21,6 +21,7 @@
       "description": "A property listing available for marketing",
       "type": "object",
       "properties": {
+        "agentId": { "type": "string", "description": "The UID of the agent who owns this property" },
         "title": { "type": "string" },
         "description": { "type": "string" },
         "price": { "type": "number" },

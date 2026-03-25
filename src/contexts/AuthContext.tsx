@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 
 interface UserProfile {
   uid: string;
@@ -8,23 +9,17 @@ interface UserProfile {
   name: string;
   phone: string;
   role: string;
+  photoUrl?: string;
   propertiesSold?: number;
   commissionTier?: number;
-  createdAt: Date;
-}
-
-// Mock User object to match the expected interface in other components
-interface MockUser {
-  uid: string;
-  email: string;
+  createdAt: Date | any; // Allow Firestore Timestamp
 }
 
 interface AuthContextType {
-  user: MockUser | null;
+  user: FirebaseUser | null;
   profile: UserProfile | null;
   loading: boolean;
   logout: () => Promise<void>;
-  loginAsDummy: (role: 'agent' | 'admin') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -32,69 +27,62 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   logout: async () => {},
-  loginAsDummy: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<MockUser | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkLocalAuth = async () => {
-      const storedRole = localStorage.getItem('dummyLoginRole');
-      if (storedRole === 'agent' || storedRole === 'admin') {
-        await loginAsDummy(storedRole);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      
+      if (firebaseUser) {
+        try {
+          const docRef = doc(db, 'users', firebaseUser.uid);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            setProfile({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
+          } else {
+            // If user exists in Auth but not in Firestore, create a basic profile
+            const newProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              name: firebaseUser.displayName || 'User',
+              phone: '',
+              role: 'agent', // Default role
+              createdAt: new Date()
+            };
+            await setDoc(docRef, newProfile);
+            setProfile(newProfile);
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+        }
       } else {
-        setLoading(false);
+        setProfile(null);
       }
-    };
-    checkLocalAuth();
+      
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const loginAsDummy = async (role: 'agent' | 'admin') => {
-    setLoading(true);
-    localStorage.setItem('dummyLoginRole', role);
-    
-    const uid = role === 'agent' ? 'dummy-agent-123' : 'dummy-admin-123';
-    const email = role === 'agent' ? 'agent@propmart.dummy' : 'admin@propmart.dummy';
-    const name = role === 'agent' ? 'Budi Agen (Dummy)' : 'Siti Admin (Dummy)';
-    
-    const dummyUser: MockUser = { uid, email };
-    const dummyProfile: UserProfile = {
-      uid,
-      email,
-      name,
-      phone: '081234567890',
-      role,
-      propertiesSold: role === 'agent' ? 5 : 0,
-      commissionTier: role === 'agent' ? 2.5 : 0,
-      createdAt: new Date()
-    };
-
-    setUser(dummyUser);
-    setProfile(dummyProfile);
-
-    try {
-      // Ensure the dummy user exists in Firestore so other queries work
-      await setDoc(doc(db, 'users', uid), dummyProfile, { merge: true });
-    } catch (e) {
-      console.error("Failed to sync dummy user to Firestore", e);
-    }
-    
-    setLoading(false);
-  };
-
   const logout = async () => {
-    localStorage.removeItem('dummyLoginRole');
-    setUser(null);
-    setProfile(null);
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, logout, loginAsDummy }}>
+    <AuthContext.Provider value={{ user, profile, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

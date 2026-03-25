@@ -21,8 +21,9 @@ export default function Properties() {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
+        if (!user) return;
         const propsRef = collection(db, 'properties');
-        const q = query(propsRef, where('status', '==', 'available'), orderBy('createdAt', 'desc'));
+        const q = query(propsRef, where('agentId', '==', user.uid), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
         
         const props: any[] = [];
@@ -57,7 +58,8 @@ export default function Properties() {
         bathrooms: 4,
         status: "available",
         images: ["https://picsum.photos/seed/house1/800/600", "https://picsum.photos/seed/house1b/800/600"],
-        createdAt: new Date()
+        createdAt: new Date(),
+        agentId: user?.uid
       },
       {
         title: "Apartemen Sudirman Suites",
@@ -69,7 +71,8 @@ export default function Properties() {
         bathrooms: 1,
         status: "available",
         images: ["https://picsum.photos/seed/apt1/800/600"],
-        createdAt: new Date()
+        createdAt: new Date(),
+        agentId: user?.uid
       },
       {
         title: "Rumah Minimalis BSD City",
@@ -81,7 +84,8 @@ export default function Properties() {
         bathrooms: 1,
         status: "available",
         images: ["https://picsum.photos/seed/house2/800/600", "https://picsum.photos/seed/house2b/800/600"],
-        createdAt: new Date()
+        createdAt: new Date(),
+        agentId: user?.uid
       },
       {
         title: "Villa Tropis Canggu",
@@ -93,7 +97,8 @@ export default function Properties() {
         bathrooms: 3,
         status: "available",
         images: ["https://picsum.photos/seed/villa1/800/600"],
-        createdAt: new Date()
+        createdAt: new Date(),
+        agentId: user?.uid
       },
       {
         title: "Townhouse Kemang",
@@ -105,7 +110,8 @@ export default function Properties() {
         bathrooms: 3,
         status: "available",
         images: ["https://picsum.photos/seed/house3/800/600"],
-        createdAt: new Date()
+        createdAt: new Date(),
+        agentId: user?.uid
       }
     ];
 
@@ -116,8 +122,9 @@ export default function Properties() {
       }
       
       // Refresh the list without reloading the page
+      if (!user) return;
       const propsRef = collection(db, 'properties');
-      const q = query(propsRef, where('status', '==', 'available'), orderBy('createdAt', 'desc'));
+      const q = query(propsRef, where('agentId', '==', user.uid), orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
       
       const props: any[] = [];

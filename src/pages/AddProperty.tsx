@@ -88,8 +88,12 @@ export default function AddProperty() {
         bathrooms: Number(formData.bathrooms) || 0,
         status: 'available',
         createdAt: new Date(),
-        agentId: user?.uid || 'dummy-agent-123'
+        agentId: user?.uid
       };
+
+      if (!propertyData.agentId) {
+        throw new Error("Anda harus login untuk menambahkan properti.");
+      }
 
       await addDoc(collection(db, 'properties'), propertyData);
       navigate('/dashboard/properties');

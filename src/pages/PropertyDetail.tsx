@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Share2, Facebook, MessageCircle, ArrowLeft, DollarSign, Download, Video, MapPin, Bed, Bath, User } from 'lucide-react';
 
@@ -25,18 +24,26 @@ export default function PropertyDetail() {
     const fetchProperty = async () => {
       if (!id) return;
       try {
-        const docRef = doc(db, 'properties', id);
-        const docSnap = await getDoc(docRef);
+        const { data: propData, error: propError } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (propError) throw propError;
         
-        if (docSnap.exists()) {
-          const propData = { id: docSnap.id, ...docSnap.data() } as any;
+        if (propData) {
           setProperty(propData);
 
           if (propData.agentId) {
-            const agentRef = doc(db, 'users', propData.agentId);
-            const agentSnap = await getDoc(agentRef);
-            if (agentSnap.exists()) {
-              setAgent({ id: agentSnap.id, ...agentSnap.data() });
+            const { data: agentData, error: agentError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('uid', propData.agentId)
+              .single();
+              
+            if (!agentError && agentData) {
+              setAgent(agentData);
             }
           }
         } else {
@@ -134,14 +141,16 @@ export default function PropertyDetail() {
     
     setSubmittingLead(true);
     try {
-      await addDoc(collection(db, 'leads'), {
+      const { error } = await supabase.from('leads').insert({
         agentId: property.agentId,
         propertyId: property.id,
         buyerName,
         buyerPhone,
         status: 'new',
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       });
+      
+      if (error) throw error;
       
       setLeadSuccess(true);
       setBuyerName('');

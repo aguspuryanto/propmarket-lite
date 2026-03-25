@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Calendar, MessageSquare, CheckCircle, XCircle, Clock, Share2 } from 'lucide-react';
 
@@ -28,13 +27,17 @@ export default function LeadDetail() {
     const fetchLeadAndProperty = async () => {
       if (!id || !user) return;
       try {
-        const leadRef = doc(db, 'leads', id);
-        const leadSnap = await getDoc(leadRef);
+        const { data: leadData, error: leadError } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (leadError) throw leadError;
         
-        if (leadSnap.exists()) {
-          const leadData = { id: leadSnap.id, ...leadSnap.data() } as any;
+        if (leadData) {
           // Security check: only owner or admin can view
-          if (leadData.agentId !== user.uid && profile?.role !== 'admin') {
+          if (leadData.agentId !== user.id && profile?.role !== 'admin') {
             navigate('/leads');
             return;
           }
@@ -43,16 +46,20 @@ export default function LeadDetail() {
           
           if (leadData.nextFollowUp) {
             // Format for datetime-local input
-            const date = leadData.nextFollowUp.toDate();
+            const date = new Date(leadData.nextFollowUp);
             const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             setNextFollowUp(localDateTime);
           }
 
           // Fetch property
-          const propRef = doc(db, 'properties', leadData.propertyId);
-          const propSnap = await getDoc(propRef);
-          if (propSnap.exists()) {
-            setProperty({ id: propSnap.id, ...propSnap.data() });
+          const { data: propData, error: propError } = await supabase
+            .from('properties')
+            .select('*')
+            .eq('id', leadData.propertyId)
+            .single();
+            
+          if (!propError && propData) {
+            setProperty(propData);
           }
         } else {
           navigate('/leads');
@@ -78,7 +85,7 @@ export default function LeadDetail() {
     setUpdating(true);
     try {
       const newInteraction = {
-        date: Timestamp.now(),
+        date: new Date().toISOString(),
         type: interactionType,
         note: interactionNote
       };
@@ -89,10 +96,15 @@ export default function LeadDetail() {
       const updateData: any = { interactions: updatedInteractions };
       
       if (nextFollowUp) {
-        updateData.nextFollowUp = Timestamp.fromDate(new Date(nextFollowUp));
+        updateData.nextFollowUp = new Date(nextFollowUp).toISOString();
       }
       
-      await updateDoc(doc(db, 'leads', lead.id), updateData);
+      const { error } = await supabase
+        .from('leads')
+        .update(updateData)
+        .eq('id', lead.id);
+        
+      if (error) throw error;
       
       setLead({ ...lead, interactions: updatedInteractions, nextFollowUp: updateData.nextFollowUp || lead.nextFollowUp });
       setInteractionNote('');
@@ -139,13 +151,23 @@ export default function LeadDetail() {
         else if (newSold >= 5) newTier = 2.5;
         else if (newSold >= 2) newTier = 2.0;
         
-        await updateDoc(doc(db, 'users', user!.uid), {
-          propertiesSold: newSold,
-          commissionTier: newTier
-        });
+        const { error: userError } = await supabase
+          .from('users')
+          .update({
+            propertiesSold: newSold,
+            commissionTier: newTier
+          })
+          .eq('uid', user!.id);
+          
+        if (userError) throw userError;
       }
       
-      await updateDoc(doc(db, 'leads', lead.id), updateData);
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update(updateData)
+        .eq('id', lead.id);
+        
+      if (leadError) throw leadError;
       
       setLead({ ...lead, ...updateData });
       alert("Status prospek berhasil diperbarui.");

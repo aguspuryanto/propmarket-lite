@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { BarChart2, DollarSign, Download } from 'lucide-react';
 
@@ -16,25 +15,33 @@ export default function Reports() {
     const fetchReports = async () => {
       if (!user) return;
       try {
-        const leadsRef = collection(db, 'leads');
-        const q = query(leadsRef, where('agentId', '==', user.uid), where('status', '==', 'closed'), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
+        const { data: leadsData, error: leadsError } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('agentId', user.id)
+          .eq('status', 'closed')
+          .order('createdAt', { ascending: false });
+          
+        if (leadsError) throw leadsError;
         
         const fetchedLeads: any[] = [];
         let commissionSum = 0;
         let salesSum = 0;
         
-        for (const document of querySnapshot.docs) {
-          const leadData = document.data();
+        for (const leadData of leadsData || []) {
           let propertyTitle = 'Properti Tidak Diketahui';
           let commissionRate = 0;
           
           try {
-            const propRef = doc(db, 'properties', leadData.propertyId);
-            const propSnap = await getDoc(propRef);
-            if (propSnap.exists()) {
-              propertyTitle = propSnap.data().title;
-              commissionRate = propSnap.data().commissionRate || 0;
+            const { data: propData, error: propError } = await supabase
+              .from('properties')
+              .select('title, commissionRate')
+              .eq('id', leadData.propertyId)
+              .single();
+              
+            if (!propError && propData) {
+              propertyTitle = propData.title;
+              commissionRate = propData.commissionRate || 0;
             }
           } catch (e) {
             console.error("Error fetching property for lead", e);
@@ -44,7 +51,7 @@ export default function Reports() {
           salesSum += (leadData.dealPrice || 0);
           
           fetchedLeads.push({
-            id: document.id,
+            id: leadData.id,
             ...leadData,
             propertyTitle,
             commissionRate
@@ -76,7 +83,7 @@ export default function Reports() {
     
     wonLeads.forEach(lead => {
       const row = [
-        lead.createdAt?.toDate().toLocaleDateString('id-ID'),
+        new Date(lead.createdAt).toLocaleDateString('id-ID'),
         `"${lead.buyerName}"`,
         `"${lead.propertyTitle}"`,
         lead.dealPrice || 0,

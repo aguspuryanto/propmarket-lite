@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { supabase } from '../supabase';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -26,25 +24,38 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Update auth profile
-      await updateProfile(user, {
-        displayName: name
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            phone,
+          }
+        }
       });
 
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        email: user.email,
-        name: name,
-        phone: phone,
-        role: 'agent',
-        propertiesSold: 0,
-        commissionTier: 1.5,
-        createdAt: new Date()
-      });
+      if (signUpError) throw signUpError;
+
+      if (data.user) {
+        // Create user document in Supabase
+        const { error: insertError } = await supabase.from('users').insert({
+          uid: data.user.id,
+          email: data.user.email,
+          name: name,
+          phone: phone,
+          role: 'agent',
+          propertiesSold: 0,
+          commissionTier: 1.5,
+          createdAt: new Date().toISOString()
+        });
+
+        if (insertError) {
+          console.error("Error creating user profile:", insertError);
+          // Don't throw here, the user is created in auth, but profile failed.
+          // In a real app we might want to handle this better.
+        }
+      }
 
       navigate('/dashboard');
     } catch (err: any) {

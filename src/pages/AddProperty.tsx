@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Upload, Plus, Info, AlertCircle } from 'lucide-react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AddProperty() {
@@ -78,6 +77,10 @@ export default function AddProperty() {
     setError('');
 
     try {
+      if (!user) {
+        throw new Error("Anda harus login untuk menambahkan properti.");
+      }
+
       const propertyData = {
         ...formData,
         price: Number(formData.price) || 0,
@@ -87,15 +90,14 @@ export default function AddProperty() {
         bedrooms: Number(formData.bedrooms) || 0,
         bathrooms: Number(formData.bathrooms) || 0,
         status: 'available',
-        createdAt: new Date(),
-        agentId: user?.uid
+        createdAt: new Date().toISOString(),
+        agentId: user.id
       };
 
-      if (!propertyData.agentId) {
-        throw new Error("Anda harus login untuk menambahkan properti.");
-      }
+      const { error: insertError } = await supabase.from('properties').insert(propertyData);
+      
+      if (insertError) throw insertError;
 
-      await addDoc(collection(db, 'properties'), propertyData);
       navigate('/dashboard/properties');
     } catch (err: any) {
       console.error("Error adding property:", err);

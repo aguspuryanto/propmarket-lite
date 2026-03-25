@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { Users, Search, Filter } from 'lucide-react';
@@ -16,29 +15,36 @@ export default function Leads() {
     const fetchLeads = async () => {
       if (!user) return;
       try {
-        const leadsRef = collection(db, 'leads');
-        const q = query(leadsRef, where('agentId', '==', user.uid), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
+        const { data: leadsData, error: leadsError } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('agentId', user.id)
+          .order('createdAt', { ascending: false });
+          
+        if (leadsError) throw leadsError;
         
         const fetchedLeads: any[] = [];
         
         // Fetch property details for each lead
-        for (const document of querySnapshot.docs) {
-          const leadData = document.data();
+        for (const leadData of leadsData || []) {
           let propertyTitle = 'Properti Tidak Diketahui';
           
           try {
-            const propRef = doc(db, 'properties', leadData.propertyId);
-            const propSnap = await getDoc(propRef);
-            if (propSnap.exists()) {
-              propertyTitle = propSnap.data().title;
+            const { data: propData, error: propError } = await supabase
+              .from('properties')
+              .select('title')
+              .eq('id', leadData.propertyId)
+              .single();
+              
+            if (!propError && propData) {
+              propertyTitle = propData.title;
             }
           } catch (e) {
             console.error("Error fetching property for lead", e);
           }
           
           fetchedLeads.push({
-            id: document.id,
+            id: leadData.id,
             ...leadData,
             propertyTitle
           });

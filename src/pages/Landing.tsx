@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { Link } from 'react-router-dom';
 import { Building, MapPin, Bed, Filter, Search, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -24,16 +23,15 @@ export default function Landing() {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const propsRef = collection(db, 'properties');
-        const q = query(propsRef, where('status', '==', 'available'), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
+        const { data, error } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('status', 'available')
+          .order('createdAt', { ascending: false });
+          
+        if (error) throw error;
         
-        const props: any[] = [];
-        querySnapshot.forEach((doc) => {
-          props.push({ id: doc.id, ...doc.data() });
-        });
-        
-        setProperties(props);
+        setProperties(data || []);
       } catch (error) {
         console.error("Error fetching properties:", error);
       } finally {

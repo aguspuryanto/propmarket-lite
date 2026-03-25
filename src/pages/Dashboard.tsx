@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { Building, Users, DollarSign, TrendingUp } from 'lucide-react';
@@ -22,9 +21,13 @@ export default function Dashboard() {
       if (!user) return;
 
       try {
-        const leadsRef = collection(db, 'leads');
-        const q = query(leadsRef, where('agentId', '==', user.uid), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
+        const { data: leadsData, error } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('agentId', user.id)
+          .order('createdAt', { ascending: false });
+          
+        if (error) throw error;
         
         let total = 0;
         let won = 0;
@@ -32,22 +35,23 @@ export default function Dashboard() {
         let earned = 0;
         const leads: any[] = [];
 
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          total++;
-          
-          if (data.status === 'closed') {
-            won++;
-            earned += (data.commissionEarned || 0);
-          } else if (data.status !== 'lost') {
-            // Rough estimate of potential commission if dealPrice is set, else 0
-            potential += (data.dealPrice ? data.dealPrice * 0.03 : 0); 
-          }
+        if (leadsData) {
+          leadsData.forEach((data) => {
+            total++;
+            
+            if (data.status === 'closed') {
+              won++;
+              earned += (data.commissionEarned || 0);
+            } else if (data.status !== 'lost') {
+              // Rough estimate of potential commission if dealPrice is set, else 0
+              potential += (data.dealPrice ? data.dealPrice * 0.03 : 0); 
+            }
 
-          if (leads.length < 5) {
-            leads.push({ id: doc.id, ...data });
-          }
-        });
+            if (leads.length < 5) {
+              leads.push(data);
+            }
+          });
+        }
 
         setStats({
           totalLeads: total,

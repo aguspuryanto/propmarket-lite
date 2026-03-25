@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Home, Building, Users, BarChart2, LogOut, Menu, X } from 'lucide-react';
+import { Home, Building, Users, BarChart2, LogOut, Menu, X, Camera } from 'lucide-react';
+import { supabase } from '../supabase';
 
 export default function Layout() {
-  const { profile, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -19,6 +22,76 @@ export default function Layout() {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleAvatarClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file.');
+      return;
+    }
+
+    setUploadingAvatar(true);
+
+    try {
+      // Compress image using canvas
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 200;
+          const MAX_HEIGHT = 200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Get compressed base64 string
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          
+          // Update Supabase
+          await supabase
+            .from('users')
+            .update({ photoUrl: compressedBase64 })
+            .eq('uid', user.id);
+          
+          setUploadingAvatar(false);
+        };
+      };
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      alert('Failed to upload avatar.');
+      setUploadingAvatar(false);
+    }
   };
 
   return (
@@ -43,9 +116,46 @@ export default function Layout() {
           </div>
           
           <div className="p-6 border-b border-slate-100">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Login sebagai:</p>
-            <p className="font-semibold text-slate-900 truncate">{profile?.name || 'Agen'}</p>
-            <p className="text-sm text-slate-500 truncate">{profile?.email}</p>
+            <div className="flex items-center space-x-4 mb-4">
+              <div 
+                className="relative w-16 h-16 rounded-full bg-slate-200 overflow-hidden cursor-pointer group flex-shrink-0 border-2 border-slate-100 shadow-sm"
+                onClick={handleAvatarClick}
+              >
+                {profile?.photoUrl ? (
+                  <img src={profile.photoUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-400">
+                    <Users size={24} />
+                  </div>
+                )}
+                
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera size={20} className="text-white" />
+                </div>
+                
+                {/* Loading state */}
+                {uploadingAvatar && (
+                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Login sebagai:</p>
+                <p className="font-semibold text-slate-900 truncate">{profile?.name || 'Agen'}</p>
+                <p className="text-sm text-slate-500 truncate">{profile?.email}</p>
+              </div>
+            </div>
+            
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              accept="image/*" 
+              className="hidden" 
+            />
           </div>
 
           <nav className="flex-1 px-4 py-6 space-y-2">

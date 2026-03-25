@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth, db } from '../firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
+import { supabase } from '../supabase';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface UserProfile {
   uid: string;
@@ -12,11 +11,11 @@ interface UserProfile {
   photoUrl?: string;
   propertiesSold?: number;
   commissionTier?: number;
-  createdAt: Date | any; // Allow Firestore Timestamp
+  createdAt: string | Date;
 }
 
 interface AuthContextType {
-  user: FirebaseUser | null;
+  user: SupabaseUser | null;
   profile: UserProfile | null;
   loading: boolean;
   logout: () => Promise<void>;
@@ -32,50 +31,76 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      
-      if (firebaseUser) {
-        try {
-          const docRef = doc(db, 'users', firebaseUser.uid);
-          const docSnap = await getDoc(docRef);
-          
-          if (docSnap.exists()) {
-            setProfile({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
-          } else {
-            // If user exists in Auth but not in Firestore, create a basic profile
-            const newProfile: UserProfile = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              name: firebaseUser.displayName || 'User',
-              phone: '',
-              role: 'agent', // Default role
-              createdAt: new Date()
-            };
-            await setDoc(docRef, newProfile);
-            setProfile(newProfile);
-          }
-        } catch (error) {
-          console.error("Error fetching user profile:", error);
-        }
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
       } else {
-        setProfile(null);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('uid', userId)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching user profile:", error);
+        // If not found, create a basic profile
+        if (error.code === 'PGRST116') {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData.user) {
+            const newProfile = {
+              uid: userId,
+              email: userData.user.email || '',
+              name: userData.user.user_metadata?.name || 'User',
+              phone: userData.user.user_metadata?.phone || '',
+              role: 'agent',
+              createdAt: new Date().toISOString()
+            };
+            await supabase.from('users').insert(newProfile);
+            setProfile(newProfile);
+          }
+        }
+      } else if (data) {
+        setProfile(data as UserProfile);
+      }
+    } catch (error) {
+      console.error("Error in fetchProfile:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const logout = async () => {
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
     } catch (error) {
       console.error("Error signing out:", error);
     }

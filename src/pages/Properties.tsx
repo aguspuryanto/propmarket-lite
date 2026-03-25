@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { collection, query, where, getDocs, orderBy, addDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { Building, MapPin, DollarSign, Bed, Filter, Search, PlusCircle } from 'lucide-react';
@@ -18,35 +17,35 @@ export default function Properties() {
   const [locationSearch, setLocationSearch] = useState('');
   const [showFilters, setShowFilters] = useState(true);
 
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        if (!user) return;
-        const propsRef = collection(db, 'properties');
-        const q = query(propsRef, where('agentId', '==', user.uid), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
+  const fetchProperties = async () => {
+    try {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('agentId', user.id)
+        .order('createdAt', { ascending: false });
         
-        const props: any[] = [];
-        querySnapshot.forEach((doc) => {
-          props.push({ id: doc.id, ...doc.data() });
-        });
-        
-        setProperties(props);
-      } catch (error) {
-        console.error("Error fetching properties:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      if (error) throw error;
+      
+      setProperties(data || []);
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProperties();
-  }, []);
+  }, [user]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
   };
 
   const seedDummyProperties = async () => {
+    if (!user) return;
     const dummies = [
       {
         title: "Rumah Mewah Pondok Indah",
@@ -58,8 +57,8 @@ export default function Properties() {
         bathrooms: 4,
         status: "available",
         images: ["https://picsum.photos/seed/house1/800/600", "https://picsum.photos/seed/house1b/800/600"],
-        createdAt: new Date(),
-        agentId: user?.uid
+        createdAt: new Date().toISOString(),
+        agentId: user.id
       },
       {
         title: "Apartemen Sudirman Suites",
@@ -71,8 +70,8 @@ export default function Properties() {
         bathrooms: 1,
         status: "available",
         images: ["https://picsum.photos/seed/apt1/800/600"],
-        createdAt: new Date(),
-        agentId: user?.uid
+        createdAt: new Date().toISOString(),
+        agentId: user.id
       },
       {
         title: "Rumah Minimalis BSD City",
@@ -84,8 +83,8 @@ export default function Properties() {
         bathrooms: 1,
         status: "available",
         images: ["https://picsum.photos/seed/house2/800/600", "https://picsum.photos/seed/house2b/800/600"],
-        createdAt: new Date(),
-        agentId: user?.uid
+        createdAt: new Date().toISOString(),
+        agentId: user.id
       },
       {
         title: "Villa Tropis Canggu",
@@ -97,8 +96,8 @@ export default function Properties() {
         bathrooms: 3,
         status: "available",
         images: ["https://picsum.photos/seed/villa1/800/600"],
-        createdAt: new Date(),
-        agentId: user?.uid
+        createdAt: new Date().toISOString(),
+        agentId: user.id
       },
       {
         title: "Townhouse Kemang",
@@ -110,30 +109,17 @@ export default function Properties() {
         bathrooms: 3,
         status: "available",
         images: ["https://picsum.photos/seed/house3/800/600"],
-        createdAt: new Date(),
-        agentId: user?.uid
+        createdAt: new Date().toISOString(),
+        agentId: user.id
       }
     ];
 
     try {
       setLoading(true);
-      for (const dummy of dummies) {
-        await addDoc(collection(db, 'properties'), dummy);
-      }
+      const { error } = await supabase.from('properties').insert(dummies);
+      if (error) throw error;
       
-      // Refresh the list without reloading the page
-      if (!user) return;
-      const propsRef = collection(db, 'properties');
-      const q = query(propsRef, where('agentId', '==', user.uid), orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      
-      const props: any[] = [];
-      querySnapshot.forEach((doc) => {
-        props.push({ id: doc.id, ...doc.data() });
-      });
-      
-      setProperties(props);
-      setLoading(false);
+      await fetchProperties();
       alert("5 properti dummy berhasil ditambahkan!");
     } catch (error: any) {
       console.error("Error seeding properties:", error);

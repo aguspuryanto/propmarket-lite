@@ -245,6 +245,20 @@ export default function PropertyDetail() {
             <p className="whitespace-pre-line">{property.description}</p>
           </div>
 
+          {/* Fasilitas */}
+          {property.facilities && property.facilities.length > 0 && (
+            <div className="mb-10">
+              <h2 className="text-xl font-bold text-slate-900 mb-4 font-serif">Fasilitas</h2>
+              <div className="flex flex-wrap gap-2">
+                {property.facilities.map((facility: string, index: number) => (
+                  <span key={index} className="px-3 py-1 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-full border border-indigo-100">
+                    {facility}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Map Section */}
           <div className="border-t border-slate-100 pt-8 mb-10">
             <div className="flex justify-between items-center mb-6">

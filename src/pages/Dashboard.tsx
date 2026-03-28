@@ -95,7 +95,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <div className="bg-white overflow-hidden shadow-sm border border-slate-200 rounded-2xl transition-all duration-300 hover:shadow-md">
           <div className="p-6">
             <div className="flex items-center">
@@ -122,6 +122,22 @@ export default function Dashboard() {
                 <dl>
                   <dt className="text-sm font-medium text-slate-500 truncate">Leads Closing (Won)</dt>
                   <dd className="text-2xl font-bold text-slate-900 mt-1">{stats.wonLeads}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow-sm border border-slate-200 rounded-2xl transition-all duration-300 hover:shadow-md">
+          <div className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-indigo-50 p-3 rounded-xl">
+                <DollarSign className="h-6 w-6 text-indigo-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-slate-500 truncate">Total Penjualan</dt>
+                  <dd className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(profile?.totalSalesVolume || 0)}</dd>
                 </dl>
               </div>
             </div>

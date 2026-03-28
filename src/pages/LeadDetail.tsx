@@ -143,18 +143,25 @@ export default function LeadDetail() {
         
         // Update user stats
         const currentSold = profile?.propertiesSold || 0;
+        const currentVolume = profile?.totalSalesVolume || 0;
         const newSold = currentSold + 1;
+        const newVolume = currentVolume + price;
         
-        // Determine new tier
+        // Determine new tier based on sales count, total volume, or single high-value sale
+        // Tier 1 (1.5%): Default
+        // Tier 2 (2.0%): >= 2 sales OR >= 5 Miliar total volume
+        // Tier 3 (2.5%): >= 5 sales OR >= 20 Miliar total volume
+        // Tier 4 (3.0%): >= 10 sales OR >= 50 Miliar total volume OR single sale >= 10 Miliar
         let newTier = 1.5;
-        if (newSold >= 10) newTier = 3.0;
-        else if (newSold >= 5) newTier = 2.5;
-        else if (newSold >= 2) newTier = 2.0;
+        if (newSold >= 10 || newVolume >= 50000000000 || price >= 10000000000) newTier = 3.0;
+        else if (newSold >= 5 || newVolume >= 20000000000) newTier = 2.5;
+        else if (newSold >= 2 || newVolume >= 5000000000) newTier = 2.0;
         
         const { error: userError } = await supabase
           .from('users')
           .update({
             propertiesSold: newSold,
+            totalSalesVolume: newVolume,
             commissionTier: newTier
           })
           .eq('uid', user!.id);

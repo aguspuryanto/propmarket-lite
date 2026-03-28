@@ -52,7 +52,8 @@ export default function AddProperty() {
     furnishType: '',
     garageCapacity: '',
     vendorName: '',
-    vendorPhone: ''
+    vendorPhone: '',
+    facilities: [] as string[]
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -68,6 +69,15 @@ export default function AddProperty() {
     setFormData(prev => ({
       ...prev,
       floors: Math.max(1, prev.floors + increment)
+    }));
+  };
+
+  const toggleFacility = (facility: string) => {
+    setFormData(prev => ({
+      ...prev,
+      facilities: prev.facilities.includes(facility)
+        ? prev.facilities.filter(f => f !== facility)
+        : [...prev.facilities, facility]
     }));
   };
 
@@ -757,6 +767,28 @@ export default function AddProperty() {
                   <span className="text-xl leading-none">+</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Fasilitas */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h2 className="text-lg font-semibold text-slate-900">Fasilitas Properti</h2>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {['Kolam Renang', 'Garasi', 'Taman', 'Keamanan 24 Jam', 'Gym', 'Internet', 'AC', 'Balkon', 'Dapur Bersih', 'Dapur Kotor'].map(facility => (
+                <label key={facility} className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.facilities.includes(facility)}
+                    onChange={() => toggleFacility(facility)}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+                  />
+                  <span className="text-sm font-medium text-slate-700">{facility}</span>
+                </label>
+              ))}
             </div>
           </div>
         </div>

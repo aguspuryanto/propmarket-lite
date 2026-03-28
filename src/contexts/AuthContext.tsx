@@ -10,6 +10,7 @@ interface UserProfile {
   role: string;
   photoUrl?: string;
   propertiesSold?: number;
+  totalSalesVolume?: number;
   commissionTier?: number;
   createdAt: string | Date;
 }

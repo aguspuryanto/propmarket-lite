@@ -2,20 +2,38 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '../supabase';
 import { Link } from 'react-router-dom';
-import { Building, MapPin, Bed, Filter, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Building, MapPin, Bed, Filter, Search, ChevronDown, ChevronUp, Bath, CheckSquare, Square, Map as MapIcon, List as ListIcon } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix leaflet default icon issue
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 export default function Landing() {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // View mode
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  
   // Filter states
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [minBedrooms, setMinBedrooms] = useState('');
+  const [minBathrooms, setMinBathrooms] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [certificateType, setCertificateType] = useState('');
   const [facingDirection, setFacingDirection] = useState('');
+  const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
   
   // Mobile filter toggle
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -46,13 +64,28 @@ export default function Landing() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
   };
 
+  const toggleFacility = (facility: string) => {
+    setSelectedFacilities(prev => 
+      prev.includes(facility) 
+        ? prev.filter(f => f !== facility)
+        : [...prev, facility]
+    );
+  };
+
   const filteredProperties = properties.filter(p => {
     if (minPrice && p.price < parseInt(minPrice)) return false;
     if (maxPrice && p.price > parseInt(maxPrice)) return false;
     if (minBedrooms && (p.bedrooms || 0) < parseInt(minBedrooms)) return false;
+    if (minBathrooms && (p.bathrooms || 0) < parseInt(minBathrooms)) return false;
     if (propertyType && p.propertyType !== propertyType) return false;
     if (certificateType && p.legalDocument !== certificateType) return false;
     if (facingDirection && p.facingDirection !== facingDirection) return false;
+    
+    if (selectedFacilities.length > 0) {
+      const propFacs = p.facilities || [];
+      const hasAll = selectedFacilities.every(f => propFacs.includes(f));
+      if (!hasAll) return false;
+    }
     
     if (locationSearch) {
       const searchLower = locationSearch.toLowerCase();
@@ -73,10 +106,24 @@ export default function Landing() {
     setMinPrice('');
     setMaxPrice('');
     setMinBedrooms('');
+    setMinBathrooms('');
     setLocationSearch('');
     setPropertyType('');
     setCertificateType('');
     setFacingDirection('');
+    setSelectedFacilities([]);
+  };
+
+  // Simple hash function for consistent mock coordinates based on property ID
+  const getMockCoords = (id: string) => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    // Base coordinates around Jakarta (-6.2, 106.8)
+    const lat = -6.2 + ((hash % 100) / 1000);
+    const lng = 106.8 + (((hash >> 8) % 100) / 1000);
+    return [lat, lng] as [number, number];
   };
 
   if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -213,25 +260,46 @@ export default function Landing() {
                   </div>
                 </div>
 
-                {/* Kamar Tidur */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Kamar Tidur (Min)</label>
-                  <div className="relative rounded-xl shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Bed size={16} className="text-slate-400" />
+                {/* Kamar Tidur & Mandi */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">K. Tidur</label>
+                    <div className="relative rounded-xl shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Bed size={16} className="text-slate-400" />
+                      </div>
+                      <select
+                        value={minBedrooms}
+                        onChange={(e) => setMinBedrooms(e.target.value)}
+                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-2.5 transition-colors"
+                      >
+                        <option value="">Semua</option>
+                        <option value="1">1+</option>
+                        <option value="2">2+</option>
+                        <option value="3">3+</option>
+                        <option value="4">4+</option>
+                        <option value="5">5+</option>
+                      </select>
                     </div>
-                    <select
-                      value={minBedrooms}
-                      onChange={(e) => setMinBedrooms(e.target.value)}
-                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-2.5 transition-colors"
-                    >
-                      <option value="">Semua</option>
-                      <option value="1">1+ Kamar</option>
-                      <option value="2">2+ Kamar</option>
-                      <option value="3">3+ Kamar</option>
-                      <option value="4">4+ Kamar</option>
-                      <option value="5">5+ Kamar</option>
-                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">K. Mandi</label>
+                    <div className="relative rounded-xl shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Bath size={16} className="text-slate-400" />
+                      </div>
+                      <select
+                        value={minBathrooms}
+                        onChange={(e) => setMinBathrooms(e.target.value)}
+                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-200 rounded-xl py-2.5 transition-colors"
+                      >
+                        <option value="">Semua</option>
+                        <option value="1">1+</option>
+                        <option value="2">2+</option>
+                        <option value="3">3+</option>
+                        <option value="4">4+</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -252,6 +320,27 @@ export default function Landing() {
                     <option value="kantor">Kantor</option>
                     <option value="pabrik">Pabrik</option>
                   </select>
+                </div>
+
+                {/* Fasilitas */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Fasilitas</label>
+                  <div className="space-y-2">
+                    {['Kolam Renang', 'Garasi', 'Taman', 'Keamanan 24 Jam', 'Gym'].map(facility => (
+                      <button
+                        key={facility}
+                        onClick={() => toggleFacility(facility)}
+                        className="flex items-center text-sm text-slate-600 hover:text-indigo-600 transition-colors w-full text-left"
+                      >
+                        {selectedFacilities.includes(facility) ? (
+                          <CheckSquare size={16} className="mr-2 text-indigo-600" />
+                        ) : (
+                          <Square size={16} className="mr-2 text-slate-400" />
+                        )}
+                        {facility}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Sertifikat */}
@@ -294,21 +383,63 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Property List */}
+          {/* Property List / Map */}
           <div className="flex-1">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-serif font-bold text-slate-900">
                 {filteredProperties.length > 0 ? `Menampilkan ${filteredProperties.length} Properti` : 'Properti Tidak Ditemukan'}
               </h2>
+              <div className="flex bg-white rounded-lg shadow-sm border border-slate-200 p-1">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center transition-colors ${viewMode === 'list' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <ListIcon size={16} className="mr-1.5" /> List
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center transition-colors ${viewMode === 'map' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <MapIcon size={16} className="mr-1.5" /> Peta
+                </button>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-6">
-              {filteredProperties.length > 0 ? (
-                filteredProperties.map((property) => (
-                  <div key={property.id} className="group bg-white overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 rounded-2xl flex flex-col md:flex-row border border-slate-100">
-                    <div className="relative w-full md:w-72 lg:w-80 shrink-0 aspect-[4/3] md:aspect-auto bg-slate-200 overflow-hidden">
-                      {property.images && property.images.length > 0 ? (
-                        <img src={property.images[0]} alt={property.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out" referrerPolicy="no-referrer" />
+            {viewMode === 'map' ? (
+              <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 h-[600px] overflow-hidden relative z-0">
+                <MapContainer center={[-6.2, 106.8]} zoom={11} style={{ height: '100%', width: '100%', borderRadius: '0.75rem' }}>
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  {filteredProperties.map(property => {
+                    const coords = getMockCoords(property.id);
+                    return (
+                      <Marker key={property.id} position={coords}>
+                        <Popup>
+                          <div className="w-48">
+                            <img src={property.images?.[0] || "https://picsum.photos/seed/house/400/300"} alt={property.title} className="w-full h-24 object-cover rounded-md mb-2" />
+                            <h3 className="font-bold text-sm truncate">{property.title}</h3>
+                            <p className="text-indigo-600 font-bold text-sm mb-1">{formatCurrency(property.price)}</p>
+                            <p className="text-xs text-slate-500 truncate">{property.location}</p>
+                            <Link to={`/property/${property.id}`} className="block mt-2 text-center text-xs bg-indigo-600 text-white py-1.5 rounded hover:bg-indigo-700">
+                              Lihat Detail
+                            </Link>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
+                </MapContainer>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-6">
+                {filteredProperties.length > 0 ? (
+                  filteredProperties.map((property) => (
+                    <div key={property.id} className="group bg-white overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 rounded-2xl flex flex-col md:flex-row border border-slate-100">
+                      <div className="relative w-full md:w-72 lg:w-80 shrink-0 aspect-[4/3] md:aspect-auto bg-slate-200 overflow-hidden">
+                        {property.images && property.images.length > 0 ? (
+                          <img src={property.images[0]} alt={property.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out" referrerPolicy="no-referrer" />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-slate-400">
                           <Building size={48} />
@@ -361,6 +492,7 @@ export default function Landing() {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
       </div>
